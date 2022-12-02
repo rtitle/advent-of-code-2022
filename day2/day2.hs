@@ -27,12 +27,6 @@ score part1 [opponent, me] = hand + outcome where
         EQ -> 3
         LT -> 0
 
-parseMe :: String -> Maybe Hand
-parseMe "X" = Just Rock
-parseMe "Y" = Just Paper
-parseMe "Z" = Just Scissors
-parseMe _ = Nothing
-
 parseOpponent :: String -> Maybe Hand
 parseOpponent "A" = Just Rock
 parseOpponent "B" = Just Paper
