@@ -12,6 +12,6 @@ main :: IO ()
 main = do
     input <- readFile "day3-input.txt"
     let part1 = sum . fmap (score . head . uncurry intersect . compartments) $ lines input
-    let part2 = sum . fmap (score . head . foldr1 intersect) $ chunksOf 3 $ lines input
+    let part2 = sum . fmap (score . head . foldr1 intersect) . chunksOf 3 $ lines input
     print $ part1
     print $ part2
