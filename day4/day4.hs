@@ -1,22 +1,19 @@
 import Data.List.Split
 
-data Range = Range {
-    start :: Int,
-    end :: Int
-} deriving Show
+data Range = Range Int Int deriving Show
 
 contains :: Range -> Range -> Bool
 contains (Range a b) (Range x y) = a <= x && b >= y
 
 overlaps :: Range -> Range -> Bool
-overlaps (Range a b) (Range x y) = a >= x && a <= y
+overlaps (Range a b) (Range x y) = b >= x && y >= a
 
 pairIsContained :: [Range] -> Bool
 pairIsContained [r1, r2] = r1 `contains` r2 || r2 `contains` r1
 pairIsContained _ = False
 
 pairOverlaps :: [Range] -> Bool
-pairOverlaps [r1, r2] = r1 `overlaps` r2 || r2 `overlaps` r1
+pairOverlaps [r1, r2] = r1 `overlaps` r2
 pairOverlaps _ = False
 
 parseRange :: String -> Range
@@ -26,7 +23,7 @@ parseRange s = Range a b where
     b = r !! 1
 
 count :: (a -> Bool) -> [a] -> Int
-count fn a = foldr (\x -> if fn(x) then (+1) else id) 0 a
+count fn = foldr (\x -> if fn(x) then (+1) else id) 0
 
 main :: IO ()
 main = do
