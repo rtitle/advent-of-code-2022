@@ -9,7 +9,7 @@ contains :: Range -> Range -> Bool
 contains (Range a b) (Range x y) = a <= x && b >= y
 
 overlaps :: Range -> Range -> Bool
-overlaps (Range a b) (Range x y) = (a >= x && a <= y)
+overlaps (Range a b) (Range x y) = a >= x && a <= y
 
 pairIsContained :: [Range] -> Bool
 pairIsContained [r1, r2] = r1 `contains` r2 || r2 `contains` r1
