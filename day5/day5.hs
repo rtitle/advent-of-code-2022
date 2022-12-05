@@ -10,17 +10,13 @@ data Instruction = Instruction {
     quantity :: Int
 } deriving Show
 
-initialShip :: Ship
-initialShip = S.fromList [
-    "TQVCDSN",
-    "VFM",
-    "MHNPDWQF",
-    "FTRQD",
-    "BVHQNMFR",
-    "QWPNGFC",
-    "TCLRFW",
-    "SNZT",
-    "NHQRJDSM"]
+parseShip :: [String] -> Ship
+parseShip s = foldr inner (S.replicate len []) cols where
+    s' = reverse . (drop 1) . reverse $ s
+    cols = fmap ((fmap (!! 1)) . (chunksOf 4)) $ s'
+    len = length . head $ cols
+    inner c r = foldr (inner2) r (zip c [0..(length c)])
+    inner2 (ch, i) r = if ch == ' ' then r else S.update i (ch : (r `S.index` i)) r
 
 parseInstruction :: String -> Instruction
 parseInstruction s = Instruction src dest q where
@@ -38,7 +34,9 @@ applyInstruction p2 i s = (S.update (dest i - 1) newDest) . (S.update (src i - 1
 main :: IO ()
 main = do
     input <- readFile "day5-input.txt"
-    let instructions = fmap parseInstruction . filter (isPrefixOf "move") $ lines input
+    let [shipLines, instLines] = splitWhen null $ lines input
+    let initialShip = parseShip shipLines
+    let instructions = fmap parseInstruction . filter (isPrefixOf "move") $ instLines
     let part1 = fmap head $ foldr (applyInstruction False) initialShip (reverse instructions)
     let part2 = fmap head $ foldr (applyInstruction True) initialShip (reverse instructions)
     print $ part1
