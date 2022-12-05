@@ -2,7 +2,7 @@ import Data.List
 import Data.List.Split
 import qualified Data.Sequence as S
 
-type Ship = S.Seq [Char]
+type Ship = S.Seq String
 
 data Instruction = Instruction {
     src :: Int,
