@@ -11,10 +11,8 @@ data Instruction = Instruction {
 } deriving Show
 
 parseShip :: [String] -> Ship
-parseShip = S.fromList . fmap (filter (not . whitespace)) . transpose . removeIndexes . cols where
-    removeIndexes = reverse . (drop 1) . reverse
+parseShip = S.fromList . fmap (filter (/= ' ')) . transpose . init . cols where
     cols = fmap (fmap (!! 1) . (chunksOf 4))
-    whitespace = (== ' ')
 
 parseInstruction :: String -> Instruction
 parseInstruction s = Instruction (src - 1) (dest - 1) q where
