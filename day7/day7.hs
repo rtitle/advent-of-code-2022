@@ -57,17 +57,17 @@ process s = foldl fn zero s where
                 newNode = replaceChild newChild node in
                     (fixParents newNode parents, newNode)
 
-sumNodes :: (Int, Int) -> FSItem -> (Int, Int)
-sumNodes (n, total) (Folder _ children) = 
-    let (a, b) = tupleSum (fmap (sumNodes (0, 0)) children) in
-        (n + a, if a <= 100000 then a + b else b)
+sumNodes :: Int -> (Int, Int) -> FSItem -> (Int, Int)
+sumNodes tt (n, total) (Folder _ children) = 
+    let (a, b) = tupleSum . fmap (sumNodes tt (0, 0)) $ children in
+        (n + a, if a <= tt then a + b else b)
     where
         tupleSum = foldl (\(r1, r2) (c1, c2) -> (r1 + c1, r2 + c2)) (0,0)
-sumNodes (n, total) (File _ sz) = (sz, total)
+sumNodes _ (_, total) (File _ sz) = (sz, total)
 
 findDir :: Int -> (Int, Int) -> FSItem -> (Int, Int)
 findDir mn (n, curMin) (Folder _ children) =
-    let (a, b) = tupleMin (fmap (findDir mn (0, curMin)) children) in
+    let (a, b) = tupleMin . fmap (findDir mn (0, curMin)) $ children in
         (n + a, if a >= mn then min b a else b)
     where
         tupleMin = foldl (\(r1, r2) (c1, c2) -> (r1 + c1, min r2 c2)) (0, maxBound :: Int)
@@ -95,7 +95,7 @@ main = do
     input <- readFile "day7-input.txt"
     let (parents, _) = process . (fmap parseLine) $ lines input -- test
     let root = head . reverse $ parents
-    let (total, part1) = sumNodes (0, 0) root
+    let (total, part1) = sumNodes 100000 (0, 0) root
     let (_, part2) = findDir (30000000 - (70000000 - total)) (0, maxBound :: Int) root
     print $ part1
     print $ part2
