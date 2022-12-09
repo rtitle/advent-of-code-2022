@@ -3,7 +3,6 @@ import Data.List.Split
 import Control.Monad.RWS (RWS, evalRWS, get, put, tell)
 
 data Direction = U | D | L | R deriving (Eq, Show)
-data Instruction = Instruction Direction Int deriving (Eq, Show)
 type Coordinate = (Int, Int)
 
 zero :: Coordinate
@@ -15,11 +14,11 @@ parseDirection "D" = D
 parseDirection "L" = L
 parseDirection "R" = R
 
-move :: Instruction -> Coordinate -> Coordinate
-move (Instruction U dist) (x, y) = (x, (y+dist))
-move (Instruction D dist) (x, y) = (x, (y-dist))
-move (Instruction L dist) (x, y) = ((x-dist), y)
-move (Instruction R dist) (x, y) = ((x+dist), y)
+move :: Direction -> Coordinate -> Coordinate
+move U (x, y) = (x, (y+1))
+move D (x, y) = (x, (y-1))
+move L (x, y) = ((x-1), y)
+move R (x, y) = ((x+1), y)
 
 cmp :: Int -> Int -> Int
 cmp a b = if a < b then -1 else if a > b then 1 else 0 
@@ -29,20 +28,20 @@ computeTail (hx, hy) (tx, ty) =
     if abs (hx - tx) <= 1 && abs (hy - ty) <= 1 then (tx, ty)
     else ((tx + hx `cmp` tx), (ty + hy `cmp` ty))
 
-parseInstruction :: String -> [Instruction]
-parseInstruction s = replicate dist (Instruction dir 1) where
+parseInstruction :: String -> [Direction]
+parseInstruction s = replicate dist dir where
     sp = splitOn " " s
     dir = parseDirection (sp !! 0)
     dist = read @Int (sp !! 1)
 
-applyInstructions :: Int -> [Instruction] -> Int
+applyInstructions :: Int -> [Direction] -> Int
 applyInstructions n is = length . nub . snd $ evalRWS (traverse inner is) () (replicate n zero) where
-    inner :: Instruction -> RWS () [Coordinate] [Coordinate] ()
-    inner inst = do
+    inner :: Direction -> RWS () [Coordinate] [Coordinate] ()
+    inner dir = do
         s <- get
         let h = head . reverse . take 1 . reverse $ s
         let t = init s
-        let newHead = move inst h
+        let newHead = move dir h
         let newTails = foldr (\t' hs -> (computeTail (head hs) t') : hs) [newHead] t
         put newTails
         tell [head newTails]
