@@ -44,12 +44,12 @@ drawCrt is = insertAt 40 '\n' chars where
     chars = (foldl fn "" is) ++ "#"
     fn s i = s ++ (replicate (i - length s) '#') ++ "."
 
-insertAt :: Int -> Char -> String -> String
-insertAt 0 c s = s
-insertAt n c [] = []
-insertAt n c s
-  | length s < n = s
-  | otherwise = take n s ++ [c] ++ insertAt n c (drop n s)
+insertAt :: Int -> a -> [a] -> [a]
+insertAt 0 _ xs = xs
+insertAt _ _ [] = []
+insertAt n x xs
+  | length xs < n = xs
+  | otherwise = take n xs ++ [x] ++ insertAt n x (drop n xs)
 
 main :: IO ()
 main = do 
