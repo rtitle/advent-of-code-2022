@@ -1,19 +1,21 @@
-import Data.Function
 import Data.List
 import Data.List.Split
-import Control.Monad.RWS (RWS, evalRWS, execRWS, get, modify, put, tell)
+import Control.Monad.RWS (RWS, evalRWS, get, modify, tell)
 
 data Monkey = Monkey {
     mid :: Int,
     items :: [Int],
     operation :: Int -> Int,
-    testDivBy :: Int,
+    divisor :: Int,
     trueMonkey :: Int,
     falseMonkey :: Int
 }
 
 instance Show Monkey where
   show (Monkey mid items _ _ _ _) = show mid ++ ":" ++ show items
+
+instance Eq Monkey where
+    a == b = (mid a) == (mid b)
 
 parseMonkey :: [String] -> Monkey
 parseMonkey s = Monkey mid items operation test (throwMonkey 4) (throwMonkey 5) where
@@ -29,45 +31,33 @@ parseOperation ["old", "+", n] = (+ (read @Int n))
 parseOperation ["old", "*", n] = (* (read @Int n))
 
 throwToMonkey :: Int -> Int -> Int -> [Monkey] -> [Monkey]
-throwToMonkey n source target ms = fmap addItem ms where
-    addItem m = Monkey (mid m) (items' m) (operation m) (testDivBy m) (trueMonkey m) (falseMonkey m)  
-    items' m = if (mid m) == target then ((items m) ++ [n]) else if (mid m) == source then drop 1 (items m) else (items m)
+throwToMonkey n source target = fmap buildMonkey where
+    buildMonkey m = Monkey (mid m) (updateItems m) (operation m) (divisor m) (trueMonkey m) (falseMonkey m)
+    updateItems (Monkey mid items _ _ _ _) = if mid == target then items ++ [n] else if mid == source then drop 1 items else items
 
-processMonkey :: Monkey -> RWS () [Int] [Monkey] [()]
-processMonkey m = do
+processMonkey :: Bool -> Int -> Int -> RWS () [Int] [Monkey] [()]
+processMonkey part2 modulo mi = do
     monkeys <- get
-    let m' = head . filter (\x -> (mid x) == (mid m)) $ monkeys
-    traverse (inner m') (items m') where
-        inner m' item = do
-            let op = ((operation m') item)
-            -- let newWorry = if op `mod` (testDivBy m') == 0 then (testDivBy m') else op
-            let newWorry = (op `mod` 9699690)
-            let targetMonkey = if newWorry `mod` (testDivBy m') == 0 then (trueMonkey m') else (falseMonkey m')
-            -- let newWorry = ((operation m') item) `div` 3
-            -- let targetMonkey = if newWorry `mod` (testDivBy m') == 0 then (trueMonkey m') else (falseMonkey m')
-            monkeys <- modify (throwToMonkey newWorry (mid m') targetMonkey)
-            tell [(mid m')]
+    let m = head . filter (\x -> (mid x) == mi) $ monkeys
+    traverse (inner m) (items m) where
+        inner (Monkey mid items operation divisor trueMonkey falseMonkey) item = do
+            let op = (operation item) `mod` modulo
+            let newWorry = if part2 then op else op `div` 3
+            let targetMonkey = if newWorry `mod` divisor == 0 then trueMonkey else falseMonkey
+            monkeys <- modify (throwToMonkey newWorry mid targetMonkey)
+            tell [mid]
 
-monkeyBusiness :: Int -> [Monkey] -> Int
-monkeyBusiness rounds ms = product . take 2 . reverse . sort . fmap (length) . group . sort . snd $ evalRWS (traverse processMonkey (concat . replicate rounds $ ms)) () ms
-
--- monkeyBusiness :: Int -> [Monkey] -> [Int]
--- monkeyBusiness rounds ms = fmap (length) . group . sort . snd $ evalRWS (traverse processMonkey (concat . replicate rounds $ ms)) () ms
-
--- newWorry :: Int -> Int -> Int
--- newWorry 0 n = if n `mod` 23 == 0 then 23 else n
--- newWorry 1 n = if n `mod` 19 == 0 then 19 else n
-
--- monkeyBusiness :: Int -> [Monkey] -> [Monkey]
--- monkeyBusiness rounds ms = fst $ execRWS (traverse processMonkey (concat . replicate rounds $ ms)) () ms
-
+monkeyBusiness :: Bool -> Int -> [Monkey] -> Int
+monkeyBusiness part2 rounds ms = business . snd $ evalRWS (traverse (processMonkey part2 modulo) r) () ms where
+    business = product . take 2 . reverse . sort . fmap (length) . group . sort
+    modulo = product . fmap divisor $ ms
+    r = concat . replicate rounds $ [0..length ms - 1]
 
 main :: IO ()
 main = do
     input <- readFile "day11-input.txt"
     let monkeys = (fmap parseMonkey) . (splitWhen null) $ lines input
-    print $ monkeys
-    let part1 = monkeyBusiness 1 monkeys
-    let part2 = monkeyBusiness 10000 monkeys
+    let part1 = monkeyBusiness False 20 monkeys
+    let part2 = monkeyBusiness True 10000 monkeys
     print $ part1
     print $ part2
