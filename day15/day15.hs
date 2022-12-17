@@ -24,11 +24,11 @@ getCoverage y s@(sx, sy) b@(bx, by) = if by == y then filter (/=bx) area else ar
     m = md s b
     area = [sx-m+height..sx+m-height]
 
-getRanges :: Coord -> Coord -> IntMap [Range]
-getRanges s@(sx, sy) b@(bx, by) = M.fromList $ fmap (\y -> (y, [inner y])) [max 0 (sy-m)..min 4000000 (sy+m)] where
+getRanges :: Int -> Coord -> Coord -> IntMap [Range]
+getRanges maxy s@(sx, sy) b@(bx, by) = M.fromList $ fmap (\y -> (y, [inner y])) [max 0 (sy-m)..min maxy (sy+m)] where
     m = md s b
     inner y = let height = abs (sy - y) in
-        (max 0 (sx-m+height), min 4000000 (sx+m-height))
+        (max 0 (sx-m+height), min maxy (sx+m-height))
 
 combineRanges :: [Range] -> [Range] -> [Range]
 combineRanges rs1 rs2 = foldl fn [] (sort (rs1 ++ rs2)) where
@@ -43,8 +43,9 @@ doPart1 cs = length . S.unions $ fmap (S.fromList . uncurry (getCoverage 2000000
 
 doPart2 :: [(Coord, Coord)] -> Int
 doPart2 cs = let [(y, ((_, x):t))] = M.toList entry in x*4000000 + y where
-    entry = M.filter (/=[(0, 4000000)]) fullMap
-    fullMap = M.unionsWith combineRanges $ fmap (uncurry getRanges) cs where
+    entry = M.filter (/=[(0, maxy)]) fullMap
+    fullMap = M.unionsWith combineRanges $ fmap (uncurry (getRanges maxy)) cs
+    maxy = 4000000
 
 md :: Coord -> Coord -> Int
 md (w,x) (y,z) = abs (w-y) + abs (x-z)
