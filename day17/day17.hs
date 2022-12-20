@@ -1,8 +1,11 @@
 import Control.Monad.Loops (iterateWhile)
-import Control.Monad.RWS (RWS, evalRWS, execRWS, get, put)
+import Control.Monad.RWS (RWS, evalRWS, execRWS, get, put, tell)
 import Data.List
 import Data.Vector (Vector)
 import qualified Data.Vector as V
+import Data.Maybe (fromMaybe)
+import Data.Map (Map)
+import qualified Data.Map as M
 
 data RockType = Dash | Plus | Ell | Line | Square deriving (Eq, Show)
 type Pos = (Int, Int)
@@ -69,10 +72,48 @@ initialState = let g = initialGrid in (g, (initial g Dash), 0)
 highest :: Grid -> Int
 highest g = length $ takeWhile (\xs -> any id xs) . fmap (take 7) . iterate (drop 7) $ (V.toList g)
 
-simulate :: Int -> String -> State
--- simulate max s = fst $ execRWS (iterateWhile (all id) (traverse inner s)) () initialState where
-simulate max s = fst $ execRWS (traverse inner s) () initialState where
-    inner :: Char -> (RWS () () State Bool)
+topRow :: Grid -> [Int]
+topRow g = fmap ((7 `subtract`) . last . takeWhile (not . (g V.!))) sequences where
+    sequences = fmap (\i -> [i,i-7..]) topRow
+    topRow = let h = highest g in [(h*7+7)..(h*7+13)]
+
+normalize :: [Int] -> [Int]
+normalize is = let m = minimum is in fmap (m `subtract`) is
+
+groupRows :: [[Int]] -> Map [Int] [Int]
+groupRows is = foldl fn M.empty (zip is [0..]) where
+    fn r (c, i) = M.insertWith (++) c [i] r
+
+isPeriodic :: [Int] -> Bool
+isPeriodic is = length (nub deltas) == 1 where
+    deltas = zipWith (-) is (tail is)
+
+getPeriodic :: Map [Int] [Int] -> Map [Int] [Int]
+getPeriodic m = M.filter (\a -> length a > 2 && isPeriodic a) m
+
+firstPeriodicIndex :: Map [Int] [Int] -> Int
+firstPeriodicIndex m = M.foldr fn (maxBound :: Int) m where
+    fn c r = let mn = minimum c in if mn < r then mn else r
+
+doPart2 :: String -> Int
+doPart2 s = res where
+    p = head . M.toList . getPeriodic . groupRows $ snd (simulate 4000 s)
+    (_, (endIdx:startIdx:_)) = p 
+    startHeight = getHighest s startIdx
+    endHeight = getHighest s endIdx
+    rise = endHeight - startHeight
+    run = endIdx - startIdx
+    middleHeight = ((1000000000000-endIdx) `div` run) * rise
+    remainder = (1000000000000-endIdx) `mod` run
+    remainderHeight = (getHighest s (startIdx+remainder)) - startHeight
+    res = endHeight + middleHeight + remainderHeight
+
+getHighest :: String -> Int -> Int
+getHighest s max = let (grid, _, _) = fst (simulate max s) in highest grid - 1
+
+simulate :: Int -> String -> (State, [[Int]])
+simulate max s = execRWS (traverse inner s) () initialState where
+    inner :: Char -> (RWS () [[Int]] State Bool)
     inner c = do
         (grid, rock, count) <- get
         let newRock1 = move grid rock (getDirection c)
@@ -82,6 +123,7 @@ simulate max s = fst $ execRWS (traverse inner s) () initialState where
         else if newRock1 == newRock2 then do
             let newGrid = addToGrid grid newRock2
             put (newGrid, initial newGrid (nextRockType (rockType rock)), count+1)
+            tell [normalize . topRow $ newGrid]
             return True
         else do
             put (grid, newRock2, count)
@@ -91,8 +133,9 @@ simulate max s = fst $ execRWS (traverse inner s) () initialState where
 main :: IO ()
 main = do
     input <- readFile "day17-input.txt"
-    let (grid, curRock, count) = simulate 2022 (concat (replicate 10 input))
-    let part1 = highest grid - 1
-    print $ curRock
+    let repeated = (concat (replicate 100 input))
+    let part1 = getHighest repeated 2022
     print $ part1
+    let part2 = doPart2 repeated
+    print $ part2
     
