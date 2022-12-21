@@ -1,5 +1,5 @@
 import Data.List.Split (splitOn)
-import Control.Monad.RWS (RWS, evalRWS, get, put, tell)
+import Control.Monad.RWS (RWS, evalRWS, get, modify)
 
 data Blueprint = Blueprint {
     bpId :: Int,
@@ -88,29 +88,25 @@ genNextState bp s = concat [
             no = if canAffordOre bp s && canAffordClay bp s && canAffordObsidian bp s then [] else [doNothing bp s]
         in ob ++ cl ++ or ++ no]
 
-upperBound :: Int -> Blueprint -> State -> Int
-upperBound depth bp s = (numGeode s) + x where
-    x = sum $ fmap (\i -> numGeodeRobots s + i) (take (24 - depth) [1,2..])
-
 -- dfs
 findQuality :: Int -> Blueprint -> Int
 findQuality maxDepth bp = fst (evalRWS (inner 0 initialState) () 0) where
-    inner :: Int -> State -> RWS () [Int] Int Int
+    inner :: Int -> State -> RWS () () Int Int
     inner depth s = if depth == maxDepth then baseCase s else do
         best <- get
-        res <- if False then return 0 --TODO: why this not working? if upperBound depth bp s < best then return 0
+        res <- if upperBound depth s < best then return 0
                 else do
                     next <- traverse (inner (depth+1)) (genNextState bp s)
                     return $ myMax next
         return res
     baseCase s = do
-        best <- get
-        let newBest = if (numGeode s) > best then (numGeode s) else best
-        -- tell [newBest]
-        put newBest
-        return (numGeode s)
+        let n = numGeode s
+        modify (max n)
+        return n
     myMax [] = 0
     myMax xs = maximum xs
+    upperBound depth s = (numGeode s) + x where
+        x = sum $ fmap (\i -> numGeodeRobots s + i) (take (maxDepth - depth) [1,2..])
 
 main :: IO ()
 main = do
