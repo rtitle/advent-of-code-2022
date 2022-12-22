@@ -2,8 +2,8 @@ import Data.CircularList (CList)
 import qualified Data.CircularList as CL
 import Data.Maybe (fromJust)
 
-shift :: (Int, Int) -> CList (Int, Int) -> CList (Int, Int)
-shift i@(n, _) clist = (CL.insertR i) . (CL.rotNR n') . CL.removeR  $ clist' where
+shift :: CList (Int, Int) -> (Int, Int) -> CList (Int, Int)
+shift clist i@(n, _) = (CL.insertR i) . (CL.rotNR n') . CL.removeR  $ clist' where
     clist' = unsafeRotateTo i clist
     n' = n `mod` (CL.size clist - 1)
 
@@ -17,8 +17,7 @@ unsafeRotateToZero :: CList (Int, Int) -> CList (Int, Int)
 unsafeRotateToZero clist = fromJust $ CL.findRotateTo (\a -> fst a == 0) clist
 
 mix :: Int -> [(Int, Int)] -> CList (Int, Int) -> CList (Int, Int)
-mix n indices clist = foldl fn clist (concat $ replicate n indices) where
-    fn r c = shift c r
+mix n indices clist = foldl shift clist (concat $ replicate n indices)
 
 getCoords :: CList (Int, Int) -> Int
 getCoords clist = rot 1000 + rot 2000 + rot 3000 where
